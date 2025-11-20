@@ -50,13 +50,14 @@ class _JarvisDashboardState extends State<JarvisDashboard> with TickerProviderSt
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   final ScrollController _logScrollController = ScrollController();
+  final TextEditingController _cmdController = TextEditingController();
+  
+  String _userStatus = "ID: SCANNING...";
   
   // Mock Data for "Processing"
   final List<String> _systemLogs = [
     "Initializing core systems...",
-    "Biometric scan complete.",
     "Connecting to satellite network...",
-    "Downloading daily briefing...",
     "System integrity: 100%",
   ];
 
@@ -88,6 +89,26 @@ class _JarvisDashboardState extends State<JarvisDashboard> with TickerProviderSt
         });
       }
     });
+    
+    // Initiate Identity Verification
+    Future.delayed(const Duration(seconds: 1), _verifyIdentity);
+  }
+
+  void _verifyIdentity() {
+    if (!mounted) return;
+    setState(() {
+      _addLogEntry("Initiating biometric scan...");
+    });
+    
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      setState(() {
+        _addLogEntry("Retinal match confirmed.");
+        _addLogEntry("Identity verified: CREATOR.");
+        _addLogEntry("Welcome back, Sir.");
+        _userStatus = "ID: CREATOR";
+      });
+    });
   }
 
   String _generateRandomLog() {
@@ -112,11 +133,48 @@ class _JarvisDashboardState extends State<JarvisDashboard> with TickerProviderSt
       }
     });
   }
+  
+  void _processCommand(String command) {
+    _cmdController.clear();
+    setState(() {
+      _addLogEntry("USER CMD: $command");
+      
+      final lowerValue = command.toLowerCase();
+      if (lowerValue.contains("who am i") || 
+          lowerValue.contains("creator") || 
+          lowerValue.contains("do you know me") ||
+          lowerValue.contains("identify user")) {
+         
+         _addLogEntry("PROCESSING: Analyzing voice print...");
+         Future.delayed(const Duration(milliseconds: 1500), () {
+           if(mounted) {
+             setState(() {
+               _addLogEntry("RESPONSE: You are the Creator.");
+               _addLogEntry("Access Level: OMNIPOTENT.");
+               _addLogEntry("All systems are at your command, Sir.");
+             });
+           }
+         });
+      } else if (lowerValue.contains("hello") || lowerValue.contains("hi")) {
+         _addLogEntry("RESPONSE: Greetings, Sir.");
+      } else {
+         _addLogEntry("Processing command...");
+         Future.delayed(const Duration(seconds: 1), () {
+           if(mounted) {
+             setState(() {
+               _addLogEntry("Command executed successfully.");
+             });
+           }
+         });
+      }
+    });
+  }
 
   @override
   void dispose() {
     _pulseController.dispose();
     _logScrollController.dispose();
+    _cmdController.dispose();
     super.dispose();
   }
 
@@ -125,7 +183,7 @@ class _JarvisDashboardState extends State<JarvisDashboard> with TickerProviderSt
     return Scaffold(
       body: Stack(
         children: [
-          // Background Grid Effect (Custom Paint could go here, using simple container for now)
+          // Background Grid Effect
           Container(
             decoration: BoxDecoration(
               gradient: RadialGradient(
@@ -197,11 +255,21 @@ class _JarvisDashboardState extends State<JarvisDashboard> with TickerProviderSt
               ),
             ],
           ),
-          Text(
-            "V 1.0.2",
-            style: TextStyle(
-              color: const Color(0xFF00BCD4).withOpacity(0.5),
-              fontSize: 12,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFF00BCD4).withOpacity(0.3)),
+              borderRadius: BorderRadius.circular(4),
+              color: const Color(0xFF00BCD4).withOpacity(0.1),
+            ),
+            child: Text(
+              _userStatus,
+              style: TextStyle(
+                color: _userStatus.contains("CREATOR") ? const Color(0xFF00E5FF) : Colors.grey,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
             ),
           ),
         ],
@@ -397,6 +465,7 @@ class _JarvisDashboardState extends State<JarvisDashboard> with TickerProviderSt
                   const SizedBox(width: 10),
                   Expanded(
                     child: TextField(
+                      controller: _cmdController,
                       style: const TextStyle(color: Colors.white, fontSize: 14),
                       decoration: const InputDecoration(
                         hintText: "Enter command...",
@@ -404,14 +473,7 @@ class _JarvisDashboardState extends State<JarvisDashboard> with TickerProviderSt
                         border: InputBorder.none,
                         isDense: true,
                       ),
-                      onSubmitted: (value) {
-                        if (value.isNotEmpty) {
-                          setState(() {
-                            _addLogEntry("USER CMD: $value");
-                            _addLogEntry("Processing command...");
-                          });
-                        }
-                      },
+                      onSubmitted: _processCommand,
                     ),
                   ),
                 ],
