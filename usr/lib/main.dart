@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -20,148 +22,262 @@ class JarvisApp extends StatelessWidget {
           primary: Color(0xFF00BCD4),
           secondary: Color(0xFF00E5FF),
           surface: Color(0xFF121212),
+          onSurface: Color(0xFFE0F7FA),
         ),
         fontFamily: 'Courier', // Monospaced font for tech feel
         useMaterial3: true,
+        cardTheme: CardTheme(
+          color: const Color(0xFF121212).withOpacity(0.8),
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(color: Color(0xFF00BCD4), width: 0.5),
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
       ),
-      home: const JarvisHomePage(),
+      home: const JarvisDashboard(),
     );
   }
 }
 
-class JarvisHomePage extends StatefulWidget {
-  const JarvisHomePage({super.key});
+class JarvisDashboard extends StatefulWidget {
+  const JarvisDashboard({super.key});
 
   @override
-  State<JarvisHomePage> createState() => _JarvisHomePageState();
+  State<JarvisDashboard> createState() => _JarvisDashboardState();
 }
 
-class _JarvisHomePageState extends State<JarvisHomePage> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
+class _JarvisDashboardState extends State<JarvisDashboard> with TickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+  final ScrollController _logScrollController = ScrollController();
+  
+  // Mock Data for "Processing"
+  final List<String> _systemLogs = [
+    "Initializing core systems...",
+    "Biometric scan complete.",
+    "Connecting to satellite network...",
+    "Downloading daily briefing...",
+    "System integrity: 100%",
+  ];
+
+  final List<Map<String, dynamic>> _activeModules = [
+    {"name": "SECURITY", "status": "ARMED", "icon": Icons.shield_outlined, "progress": 1.0},
+    {"name": "NETWORK", "status": "ONLINE", "icon": Icons.wifi, "progress": 0.98},
+    {"name": "POWER", "status": "STABLE", "icon": Icons.bolt, "progress": 0.85},
+    {"name": "AI CORE", "status": "LEARNING", "icon": Icons.psychology, "progress": 0.45},
+  ];
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _pulseController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
     )..repeat(reverse: true);
-    _animation = Tween<double>(begin: 1.0, end: 1.2).animate(CurvedAnimation(
-      parent: _controller,
+    
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(CurvedAnimation(
+      parent: _pulseController,
       curve: Curves.easeInOut,
     ));
+
+    // Simulate incoming logs
+    Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (mounted) {
+        setState(() {
+          _addLogEntry(_generateRandomLog());
+        });
+      }
+    });
+  }
+
+  String _generateRandomLog() {
+    final actions = ["Scanning", "Processing", "Optimizing", "Encrypting", "Analyzing"];
+    final targets = ["Data Packets", "Neural Net", "Security Protocol", "User Input", "Cloud Storage"];
+    final random = Random();
+    return "${actions[random.nextInt(actions.length)]} ${targets[random.nextInt(targets.length)]}...";
+  }
+
+  void _addLogEntry(String log) {
+    _systemLogs.add("${DateTime.now().hour}:${DateTime.now().minute}:${DateTime.now().second} - $log");
+    if (_systemLogs.length > 20) _systemLogs.removeAt(0);
+    
+    // Auto scroll to bottom
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_logScrollController.hasClients) {
+        _logScrollController.animateTo(
+          _logScrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _pulseController.dispose();
+    _logScrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // Background Grid or Elements could go here
-            
-            // Central Interface
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Pulsing Core
-                  ScaleTransition(
-                    scale: _animation,
-                    child: Container(
-                      width: 150,
-                      height: 150,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFF00BCD4),
-                          width: 2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF00BCD4).withOpacity(0.5),
-                            blurRadius: 20,
-                            spreadRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Container(
-                          width: 100,
-                          height: 100,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: const Color(0xFF00BCD4).withOpacity(0.2),
-                            border: Border.all(
-                              color: const Color(0xFF00E5FF),
-                              width: 1,
-                            ),
-                          ),
-                          child: const Icon(
-                            Icons.mic_none,
-                            size: 50,
-                            color: Color(0xFF00E5FF),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 40),
-                  // Status Text
-                  const Text(
-                    "J.A.R.V.I.S.",
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 5,
-                      color: Color(0xFF00BCD4),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    "SYSTEM ONLINE",
-                    style: TextStyle(
-                      fontSize: 14,
-                      letterSpacing: 2,
-                      color: const Color(0xFF00BCD4).withOpacity(0.7),
-                    ),
-                  ),
+      body: Stack(
+        children: [
+          // Background Grid Effect (Custom Paint could go here, using simple container for now)
+          Container(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment.center,
+                radius: 1.5,
+                colors: [
+                  const Color(0xFF051518),
+                  const Color(0xFF000000),
                 ],
               ),
             ),
-            
-            // Corner UI Elements
-            Positioned(
-              top: 20,
-              left: 20,
-              child: _buildStatusIndicator("CPU", "NORMAL"),
+          ),
+          
+          SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(),
+                Expanded(
+                  child: Row(
+                    children: [
+                      // Left Panel: System Modules
+                      Expanded(
+                        flex: 3,
+                        child: _buildModulesGrid(),
+                      ),
+                      // Right Panel: Core & Logs
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          children: [
+                            _buildCoreVisualizer(),
+                            Expanded(child: _buildLogTerminal()),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _buildBottomBar(),
+              ],
             ),
-            Positioned(
-              top: 20,
-              right: 20,
-              child: _buildStatusIndicator("NET", "CONNECTED"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.memory, color: Color(0xFF00BCD4)),
+              const SizedBox(width: 10),
+              Text(
+                "J.A.R.V.I.S. // DASHBOARD",
+                style: TextStyle(
+                  color: const Color(0xFF00BCD4),
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                  fontSize: 16,
+                  shadows: [
+                    Shadow(color: const Color(0xFF00BCD4).withOpacity(0.5), blurRadius: 10),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          Text(
+            "V 1.0.2",
+            style: TextStyle(
+              color: const Color(0xFF00BCD4).withOpacity(0.5),
+              fontSize: 12,
             ),
-            Positioned(
-              bottom: 20,
-              left: 20,
-              child: IconButton(
-                icon: const Icon(Icons.settings, color: Color(0xFF00BCD4)),
-                onPressed: () {},
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModulesGrid() {
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 1.1,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: _activeModules.length,
+      itemBuilder: (context, index) {
+        final module = _activeModules[index];
+        return _buildModuleCard(module);
+      },
+    );
+  }
+
+  Widget _buildModuleCard(Map<String, dynamic> module) {
+    return Card(
+      elevation: 4,
+      color: const Color(0xFF0A1A1C).withOpacity(0.8),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(module['icon'], color: const Color(0xFF00BCD4), size: 28),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: const Color(0xFF00BCD4).withOpacity(0.5)),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    module['status'],
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFF00E5FF),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              module['name'],
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.5,
               ),
             ),
-            Positioned(
-              bottom: 20,
-              right: 20,
-              child: IconButton(
-                icon: const Icon(Icons.keyboard_voice, color: Color(0xFF00BCD4)),
-                onPressed: () {},
+            const SizedBox(height: 5),
+            LinearProgressIndicator(
+              value: module['progress'],
+              backgroundColor: const Color(0xFF003333),
+              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF00BCD4)),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              "Load: ${(module['progress'] * 100).toInt()}%",
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey[400],
               ),
             ),
           ],
@@ -170,26 +286,153 @@ class _JarvisHomePageState extends State<JarvisHomePage> with SingleTickerProvid
     );
   }
 
-  Widget _buildStatusIndicator(String label, String status) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: const Color(0xFF00BCD4).withOpacity(0.6),
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
+  Widget _buildCoreVisualizer() {
+    return SizedBox(
+      height: 200,
+      child: Center(
+        child: ScaleTransition(
+          scale: _pulseAnimation,
+          child: Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: const Color(0xFF00BCD4),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF00BCD4).withOpacity(0.4),
+                  blurRadius: 30,
+                  spreadRadius: 5,
+                ),
+              ],
+              gradient: RadialGradient(
+                colors: [
+                  const Color(0xFF00BCD4).withOpacity(0.2),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.fingerprint,
+                size: 60,
+                color: Color(0xFF00E5FF),
+              ),
+            ),
           ),
         ),
-        Text(
-          status,
-          style: const TextStyle(
-            color: Color(0xFF00E5FF),
-            fontSize: 12,
+      ),
+    );
+  }
+
+  Widget _buildLogTerminal() {
+    return Container(
+      margin: const EdgeInsets.only(right: 16, bottom: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF050505),
+        border: Border.all(color: const Color(0xFF00BCD4).withOpacity(0.3)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "> SYSTEM LOGS",
+            style: TextStyle(
+              color: Color(0xFF00BCD4),
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
           ),
-        ),
-      ],
+          const Divider(color: Color(0xFF00BCD4), height: 20),
+          Expanded(
+            child: ListView.builder(
+              controller: _logScrollController,
+              itemCount: _systemLogs.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2.0),
+                  child: Text(
+                    _systemLogs[index],
+                    style: TextStyle(
+                      color: const Color(0xFF00E5FF).withOpacity(0.7),
+                      fontSize: 10,
+                      fontFamily: 'Courier',
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomBar() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: const Color(0xFF00BCD4).withOpacity(0.3))),
+        color: const Color(0xFF0A0A0A),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              height: 40,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF121212),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFF00BCD4).withOpacity(0.5)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.terminal, size: 16, color: Color(0xFF00BCD4)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      decoration: const InputDecoration(
+                        hintText: "Enter command...",
+                        hintStyle: TextStyle(color: Colors.grey),
+                        border: InputBorder.none,
+                        isDense: true,
+                      ),
+                      onSubmitted: (value) {
+                        if (value.isNotEmpty) {
+                          setState(() {
+                            _addLogEntry("USER CMD: $value");
+                            _addLogEntry("Processing command...");
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          IconButton(
+            onPressed: () {
+              setState(() {
+                _addLogEntry("Voice command initiated...");
+              });
+            },
+            icon: const Icon(Icons.mic, color: Color(0xFF00BCD4)),
+            style: IconButton.styleFrom(
+              backgroundColor: const Color(0xFF00BCD4).withOpacity(0.1),
+              shape: const CircleBorder(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
